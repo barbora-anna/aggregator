@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aggregator
+      POSTGRES_PASSWORD: aggregator
+      POSTGRES_DB: aggregator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aggregator"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://aggregator:aggregator@db:5432/aggregator
+      OFFERS_SERVICE_URL: ${OFFERS_SERVICE_URL}
+      OFFERS_REFRESH_TOKEN: ${OFFERS_REFRESH_TOKEN}
+      SYNC_SCHEDULE: ${SYNC_SCHEDULE:-*/30 * * * * *}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
