@@ -24,6 +24,7 @@ services:
       OFFERS_SERVICE_URL: ${OFFERS_SERVICE_URL}
       OFFERS_REFRESH_TOKEN: ${OFFERS_REFRESH_TOKEN}
       SYNC_SCHEDULE: ${SYNC_SCHEDULE:-*/30 * * * * *}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
         condition: service_healthy

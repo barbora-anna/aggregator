@@ -15,8 +15,9 @@ from app.config import settings
 
 log = logging.getLogger(__name__)
 
-# Module-level engine, set during app lifespan
+# Module-level state, set during app lifespan
 engine: AsyncEngine | None = None
+session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
 def make_engine() -> AsyncEngine:
@@ -36,20 +37,22 @@ def make_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession
 
 @asynccontextmanager
 async def manage_db_engine() -> t.AsyncIterator[AsyncEngine]:
-    """Manage lifetime of database engine."""
+    """Manage lifetime of database engine and session factory."""
+    global session_factory
     log.info("Connecting to database...")
-    engine = make_engine()
+    eng = make_engine()
+    session_factory = make_session_factory(eng)
     try:
-        yield engine
+        yield eng
     finally:
         log.info("Disposing database connection")
-        await engine.dispose()
+        session_factory = None
+        await eng.dispose()
 
 
 @asynccontextmanager
-async def db_session(engine: AsyncEngine) -> t.AsyncIterator[AsyncSession]:
+async def db_session() -> t.AsyncIterator[AsyncSession]:
     """Acquire ORM session with automatic transaction management."""
-    session_factory = make_session_factory(engine)
     async with session_factory() as session:
         try:
             yield session
@@ -61,6 +64,5 @@ async def db_session(engine: AsyncEngine) -> t.AsyncIterator[AsyncSession]:
 
 async def get_session() -> t.AsyncIterator[AsyncSession]:
     """FastAPI dependency that yields a database session."""
-    session_factory = make_session_factory(engine)
     async with session_factory() as session:
         yield session

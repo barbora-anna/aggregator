@@ -1,6 +1,7 @@
 """Offer synchronization logic."""
 
 import logging
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -31,6 +32,7 @@ class OfferReconciler:
         """Insert or update a single offer."""
         if external.id in self.db_offers:
             db_offer = self.db_offers[external.id]
+            db_offer.last_seen_at = datetime.now(UTC)
             if db_offer.price != external.price or db_offer.items_in_stock != external.items_in_stock:
                 db_offer.price = external.price
                 db_offer.items_in_stock = external.items_in_stock

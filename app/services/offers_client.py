@@ -10,18 +10,28 @@ from app.schemas import ExternalAuthResponse, ExternalOffer, ExternalRegistratio
 
 log = logging.getLogger(__name__)
 
+_instance: "OffersClient | None" = None
+
 
 class OffersClient:
     def __init__(self) -> None:
         self.base_url = settings.offers_service_url.rstrip("/")
-        self.refresh_token = settings.offers_refresh_token
+        self.refresh_token = settings.offers_refresh_token.get_secret_value()
         self.access_token: str | None = None
+
+    @classmethod
+    def get(cls) -> "OffersClient":
+        """Return a shared singleton instance."""
+        global _instance
+        if _instance is None:
+            _instance = cls()
+        return _instance
 
     async def _authenticate(self, client: httpx.AsyncClient) -> None:
         """Exchange refresh token for access token."""
         response = await client.post(
             f"{self.base_url}/api/v1/auth",
-            json={"refresh_token": self.refresh_token},
+            headers={"Bearer": self.refresh_token},
         )
         response.raise_for_status()
         data = ExternalAuthResponse.model_validate(response.json())
@@ -38,7 +48,7 @@ class OffersClient:
         url: str,
         **kwargs,
     ) -> httpx.Response:
-        """Make request, re-authenticate on 401 and retry once."""
+        """Make a request, re-authenticate on 401 and retry once."""
         if not self.access_token:
             await self._authenticate(client)
 

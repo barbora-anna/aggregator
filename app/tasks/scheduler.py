@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy import select
 
 from app.config import settings
-from app.db.database import db_session, engine
+from app.db.database import db_session
 from app.db.models import Product as ProductModel
 from app.services.offers_client import OffersClient
 from app.services.sync_service import OfferReconciler
@@ -21,17 +21,27 @@ async def sync_all_offers() -> None:
     """Sync offers for all registered products."""
     log.info("Starting background offer sync")
 
-    async with db_session(engine) as session:
-        result = await session.execute(
-            select(ProductModel).where(ProductModel.external_id.isnot(None))
-        )
-        products = result.scalars().all()
+    # Fetch all registered products
+    try:
+        async with db_session() as session:
+            result = await session.execute(
+                select(ProductModel).where(ProductModel.external_id.isnot(None))
+            )
+            products = result.scalars().all()
+    except Exception:
+        log.exception("Database connection failed, skipping sync cycle")
+        return
 
-    client = OffersClient()
+    if not products:
+        log.info("No registered products to sync")
+        return
+
+    log.info("Syncing offers for %d products", len(products))
+    client = OffersClient.get()
 
     for product in products:
         try:
-            async with db_session(engine) as session:
+            async with db_session() as session:
                 external_offers = await client.get_offers(product.external_id)
                 reconciler = OfferReconciler(session, product.id)
                 await reconciler.reconcile(external_offers)
