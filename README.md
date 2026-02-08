@@ -6,7 +6,7 @@ A stateful backend service that owns a product catalogue and periodically synchr
 
 - **Product CRUD API** - Create, read, update, and delete products
 - **Offer Synchronization** - Background job periodically fetches offers from external service
-- **Cached Offers API** - Read-only API with best-effort on-demand refresh
+- **Cached Offers API** - Read-only API serving locally stored offers
 - **PostgreSQL Storage** - Async SQLAlchemy with Alembic migrations
 - **Docker Support** - Full containerized setup with docker-compose
 
@@ -14,8 +14,7 @@ A stateful backend service that owns a product catalogue and periodically synchr
 
 - Products are created via our API and registered with the external offers service
 - Background scheduler syncs offers for all registered products (configurable cron schedule)
-- Offers are stored locally and served from database (source of truth)
-- On-demand refresh for individual product offers with graceful fallback to cached data
+- Offers are stored locally and served from database
 
 ## Requirements
 
@@ -26,19 +25,7 @@ A stateful backend service that owns a product catalogue and periodically synchr
 
 ## Environment Variables
 
-Create a `.env` file in the project root:
-
-```env
-# Database connection (default shown)
-DATABASE_URL=postgresql+asyncpg://aggregator:aggregator@localhost:5432/aggregator
-
-# External offers service
-OFFERS_SERVICE_URL=https://your-offers-service.com
-OFFERS_REFRESH_TOKEN=your-refresh-token-here
-
-# Background sync schedule (6-field cron: sec min hour day month dow)
-SYNC_SCHEDULE=*/30 * * * * *
-```
+Create a `.env` file in the project root according to `.env.example`.
 
 ## Local Development
 
@@ -110,7 +97,11 @@ Or create a `.env` file (already gitignored).
 
 ### Offers
 
-- `GET /products/{id}/offers` - Get offers for a product (best-effort fresh fetch, falls back to cache)
+- `GET /products/{id}/offers` - Get cached offers for a product
+
+### Health
+
+- `GET /health` - Database connectivity check (returns 503 if DB is down)
 
 ## Database Migrations
 
@@ -150,9 +141,16 @@ SYNC_SCHEDULE="0 */5 * * * *"  # Every 5 minutes
 
 ## Testing
 
+Tests use an in-memory SQLite database and mock the external offers service.
+
 ```bash
-uv run pytest
+uv run pytest -v
 ```
+
+Test coverage:
+- **Product CRUD** - create, read, update, delete, 404 handling
+- **Offers API** - cached offers retrieval, empty results, missing products
+- **Sync logic** - offer insert, update, stale removal, full reconciliation
 
 ## Project Structure
 
