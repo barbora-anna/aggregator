@@ -1,4 +1,4 @@
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,6 +10,17 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     model_config = {"env_file": ".env"}
+
+    @model_validator(mode="after")
+    def normalize_database_url(self) -> "Settings":
+        """Render provides postgres:// or postgresql:// — rewrite for asyncpg."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        self.database_url = url
+        return self
 
 
 settings = Settings()
