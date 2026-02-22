@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv sync --dev
+
+      - run: uv run pytest -v
+        env:
+          OFFERS_SERVICE_URL: https://placeholder.example.com
+          OFFERS_REFRESH_TOKEN: placeholder
