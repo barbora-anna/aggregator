@@ -9,7 +9,7 @@ from sqlalchemy import text
 
 from app.db import database
 from app.db.database import get_session, manage_db_engine
-from app.logging import init_logging
+from app.logging_setup import init_logging
 from app.routers import offers, products
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 
