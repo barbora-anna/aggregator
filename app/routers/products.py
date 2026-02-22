@@ -67,17 +67,10 @@ async def update_product(product_id: UUID, data: ProductUpdate, session: AsyncSe
         log.warning("Product not found for update: id=%s", product_id)
         raise HTTPException(status_code=404, detail="Product not found")
 
-    changes = []
-    if data.name is not None:
-        log.debug("Updating name: %s -> %s", product.name, data.name)
-        product.name = data.name
-        changes.append("name")
-    if data.description is not None:
-        log.debug("Updating description for product %s", product_id)
-        product.description = data.description
-        changes.append("description")
+    product.name = data.name
+    product.description = data.description
 
-    log.info("Product updated successfully: id=%s, changed_fields=%s", product_id, changes)
+    log.info("Product updated successfully: id=%s", product_id)
     return product
 
 
