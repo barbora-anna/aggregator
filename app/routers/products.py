@@ -32,7 +32,6 @@ async def create_product(data: ProductCreate, session: AsyncSession = Depends(ge
     product.external_id = external_id
     log.info("Product %s registered with external_id=%s", product.id, external_id)
 
-    await session.commit()
     log.info("Product created successfully: id=%s, name=%s", product.id, product.name)
     return product
 
@@ -78,7 +77,6 @@ async def update_product(product_id: UUID, data: ProductUpdate, session: AsyncSe
         product.description = data.description
         changes.append("description")
 
-    await session.commit()
     log.info("Product updated successfully: id=%s, changed_fields=%s", product_id, changes)
     return product
 
@@ -94,5 +92,4 @@ async def delete_product(product_id: UUID, session: AsyncSession = Depends(get_s
 
     product_name = product.name
     await session.delete(product)
-    await session.commit()
     log.info("Product deleted successfully: id=%s, name=%s", product_id, product_name)
