@@ -69,8 +69,8 @@ def _parse_cron_expression(expr: str) -> CronTrigger:
 
 def start_scheduler() -> None:
     """Start the background scheduler."""
-    if settings.sync_schedule.strip().lower() == "never":
-        log.info("Scheduler disabled (SYNC_SCHEDULE=never)")
+    if not settings.sync_schedule:
+        log.info("Scheduler disabled (no SYNC_SCHEDULE configured)")
         return
     trigger = _parse_cron_expression(settings.sync_schedule)
     scheduler.add_job(
