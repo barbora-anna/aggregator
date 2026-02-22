@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.db import database
-from app.db.database import get_session, manage_db_engine
+from app.db.database import db_session, manage_db_engine
 from app.logging_setup import init_logging
 from app.routers import offers, products
 from app.services.offers_client import OffersClient
@@ -39,7 +39,7 @@ app.include_router(offers.router)
 async def health_check():
     """Health check endpoint - verifies DB connectivity."""
     try:
-        async for session in get_session():
+        async with db_session() as session:
             await session.execute(text("SELECT 1"))
             return {"status": "healthy", "database": "connected"}
     except Exception as e:
