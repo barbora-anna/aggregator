@@ -50,11 +50,20 @@ async def test_update_product(client):
     create = await client.post("/products", json={"name": "old", "description": "something old"})
     product_id = create.json()["id"]
 
-    response = await client.put(f"/products/{product_id}", json={"name": "new"})
+    response = await client.put(f"/products/{product_id}", json={"name": "new", "description": "something new"})
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "new"
-    assert data["description"] == "something old"
+    assert data["description"] == "something new"
+
+
+async def test_update_product_clears_description(client):
+    create = await client.post("/products", json={"name": "old", "description": "something old"})
+    product_id = create.json()["id"]
+
+    response = await client.put(f"/products/{product_id}", json={"name": "old"})
+    assert response.status_code == 200
+    assert response.json()["description"] is None
 
 
 async def test_update_product_not_found(client):

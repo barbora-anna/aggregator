@@ -32,7 +32,6 @@ async def create_product(data: ProductCreate, session: AsyncSession = Depends(ge
     product.external_id = external_id
     log.info("Product %s registered with external_id=%s", product.id, external_id)
 
-    await session.commit()
     log.info("Product created successfully: id=%s, name=%s", product.id, product.name)
     return product
 
@@ -68,18 +67,10 @@ async def update_product(product_id: UUID, data: ProductUpdate, session: AsyncSe
         log.warning("Product not found for update: id=%s", product_id)
         raise HTTPException(status_code=404, detail="Product not found")
 
-    changes = []
-    if data.name is not None:
-        log.debug("Updating name: %s -> %s", product.name, data.name)
-        product.name = data.name
-        changes.append("name")
-    if data.description is not None:
-        log.debug("Updating description for product %s", product_id)
-        product.description = data.description
-        changes.append("description")
+    product.name = data.name
+    product.description = data.description
 
-    await session.commit()
-    log.info("Product updated successfully: id=%s, changed_fields=%s", product_id, changes)
+    log.info("Product updated successfully: id=%s", product_id)
     return product
 
 
@@ -94,5 +85,4 @@ async def delete_product(product_id: UUID, session: AsyncSession = Depends(get_s
 
     product_name = product.name
     await session.delete(product)
-    await session.commit()
     log.info("Product deleted successfully: id=%s, name=%s", product_id, product_name)

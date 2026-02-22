@@ -64,5 +64,5 @@ async def db_session() -> t.AsyncIterator[AsyncSession]:
 
 async def get_session() -> t.AsyncIterator[AsyncSession]:
     """FastAPI dependency that yields a database session."""
-    async with session_factory() as session:
+    async with db_session() as session:
         yield session

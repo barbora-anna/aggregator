@@ -13,7 +13,7 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
-    name: str | None = None
+    name: str
     description: str | None = None
 
 

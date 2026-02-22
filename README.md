@@ -9,12 +9,31 @@ A stateful backend service that owns a product catalogue and periodically synchr
 - **Cached Offers API** - Read-only API serving locally stored offers
 - **PostgreSQL Storage** - Async SQLAlchemy with Alembic migrations
 - **Docker Support** - Full containerized setup with docker-compose
+- **Deployed on Render** - Docker-based deployment with managed PostgreSQL
 
 ## Architecture
 
 - Products are created via our API and registered with the external offers service
-- Background scheduler syncs offers for all registered products (configurable cron schedule)
-- Offers are stored locally and served from database
+- Background scheduler syncs offers for all registered products (configurable cron schedule, can be disabled by not setting `SYNC_SCHEDULE`)
+- Offers are stored locally and served from the database
+
+## API Endpoints
+
+### Products
+
+- `POST /products` - Create a product (auto-registers with external service)
+- `GET /products` - List all products
+- `GET /products/{id}` - Get a single product
+- `PUT /products/{id}` - Update a product
+- `DELETE /products/{id}` - Delete a product and its offers
+
+### Offers
+
+- `GET /products/{id}/offers` - Get cached offers for a product
+
+### Health
+
+- `GET /health` - Database connectivity check (returns 503 if DB is down)
 
 ## Requirements
 
@@ -26,6 +45,14 @@ A stateful backend service that owns a product catalogue and periodically synchr
 ## Environment Variables
 
 Create a `.env` file in the project root according to `.env.example`.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | No | `postgresql+asyncpg://aggregator:aggregator@localhost:5432/aggregator` | Database connection string (auto-normalizes `postgres://` schemes) |
+| `OFFERS_SERVICE_URL` | Yes | — | Base URL of the external offers microservice |
+| `OFFERS_REFRESH_TOKEN` | Yes | — | Refresh token for offers service authentication |
+| `SYNC_SCHEDULE` | No | `*/30 * * * * *` | 6-field cron expression. Omit or leave empty to disable |
+| `LOG_LEVEL` | No | `INFO` | Logging level |
 
 ## Local Development
 
@@ -70,8 +97,8 @@ docker-compose up --build
 The application will:
 1. Wait for PostgreSQL to be healthy
 2. Run Alembic migrations automatically
-3. Start the FastAPI server on port 8000
-4. Start the background offer sync scheduler
+3. Start the FastAPI server
+4. Start the background offer sync scheduler (unless disabled)
 
 ### Environment variables for Docker
 
@@ -84,24 +111,6 @@ docker-compose up
 ```
 
 Or create a `.env` file (already gitignored).
-
-## API Endpoints
-
-### Products
-
-- `POST /products` - Create a product (auto-registers with external service)
-- `GET /products` - List all products
-- `GET /products/{id}` - Get a single product
-- `PUT /products/{id}` - Update a product
-- `DELETE /products/{id}` - Delete a product and its offers
-
-### Offers
-
-- `GET /products/{id}/offers` - Get cached offers for a product
-
-### Health
-
-- `GET /health` - Database connectivity check (returns 503 if DB is down)
 
 ## Database Migrations
 
@@ -133,11 +142,6 @@ The scheduler runs a cron job (configurable via `SYNC_SCHEDULE`) that:
 4. Logs errors but continues processing other products
 
 Default schedule: every 30 seconds (`*/30 * * * * *`)
-
-Change via environment variable:
-```bash
-SYNC_SCHEDULE="0 */5 * * * *"  # Every 5 minutes
-```
 
 ## Testing
 
@@ -178,7 +182,3 @@ aggregator/
 ├── pyproject.toml
 └── README.md
 ```
-
-## License
-
-MIT

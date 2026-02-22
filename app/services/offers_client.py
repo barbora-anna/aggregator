@@ -18,6 +18,7 @@ class OffersClient:
         self.base_url = settings.offers_service_url.rstrip("/")
         self.refresh_token = settings.offers_refresh_token.get_secret_value()
         self.access_token: str | None = None
+        self._client = httpx.AsyncClient()
 
     @classmethod
     def get(cls) -> "OffersClient":
@@ -27,9 +28,17 @@ class OffersClient:
             _instance = cls()
         return _instance
 
-    async def _authenticate(self, client: httpx.AsyncClient) -> None:
+    @classmethod
+    async def close(cls) -> None:
+        """Close the shared instance's HTTP client."""
+        global _instance
+        if _instance is not None:
+            await _instance._client.aclose()
+            _instance = None
+
+    async def _authenticate(self) -> None:
         """Exchange refresh token for access token."""
-        response = await client.post(
+        response = await self._client.post(
             f"{self.base_url}/api/v1/auth",
             headers={"Bearer": self.refresh_token},
         )
@@ -38,50 +47,50 @@ class OffersClient:
         self.access_token = data.access_token
         log.info("Authenticated with offers service")
 
+    async def ensure_authenticated(self) -> None:
+        """Authenticate if no valid token is cached."""
+        if not self.access_token:
+            await self._authenticate()
+
     def _auth_headers(self) -> dict[str, str]:
         return {"Bearer": self.access_token}
 
     async def _request_with_retry(
         self,
-        client: httpx.AsyncClient,
         method: str,
         url: str,
         **kwargs,
     ) -> httpx.Response:
         """Make a request, re-authenticate on 401 and retry once."""
         if not self.access_token:
-            await self._authenticate(client)
+            await self._authenticate()
 
         kwargs.setdefault("headers", {}).update(self._auth_headers())
-        response = await client.request(method, url, **kwargs)
+        response = await self._client.request(method, url, **kwargs)
 
         if response.status_code == 401:
             log.info("Token expired, re-authenticating...")
-            await self._authenticate(client)
+            await self._authenticate()
             kwargs["headers"].update(self._auth_headers())
-            response = await client.request(method, url, **kwargs)
+            response = await self._client.request(method, url, **kwargs)
 
         response.raise_for_status()
         return response
 
     async def register_product(self, product_id: UUID, name: str, description: str | None) -> UUID:
         """Register a product with the offers service. Returns external ID."""
-        async with httpx.AsyncClient() as client:
-            response = await self._request_with_retry(
-                client,
-                "POST",
-                f"{self.base_url}/api/v1/products/register",
-                json={"id": str(product_id), "name": name, "description": description or ""},
-            )
-            data = ExternalRegistrationResponse.model_validate(response.json())
-            return data.id
+        response = await self._request_with_retry(
+            "POST",
+            f"{self.base_url}/api/v1/products/register",
+            json={"id": str(product_id), "name": name, "description": description or ""},
+        )
+        data = ExternalRegistrationResponse.model_validate(response.json())
+        return data.id
 
     async def get_offers(self, product_id: UUID) -> list[ExternalOffer]:
         """Fetch offers for a product."""
-        async with httpx.AsyncClient() as client:
-            response = await self._request_with_retry(
-                client,
-                "GET",
-                f"{self.base_url}/api/v1/products/{product_id}/offers",
-            )
-            return [ExternalOffer.model_validate(o) for o in response.json()]
+        response = await self._request_with_retry(
+            "GET",
+            f"{self.base_url}/api/v1/products/{product_id}/offers",
+        )
+        return [ExternalOffer.model_validate(o) for o in response.json()]

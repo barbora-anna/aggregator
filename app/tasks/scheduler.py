@@ -39,6 +39,12 @@ async def sync_all_offers() -> None:
     log.info("Syncing offers for %d products", len(products))
     client = OffersClient.get()
 
+    try:
+        await client.ensure_authenticated()
+    except Exception:
+        log.exception("Authentication failed, skipping sync cycle")
+        return
+
     for product in products:
         try:
             async with db_session() as session:
@@ -69,8 +75,8 @@ def _parse_cron_expression(expr: str) -> CronTrigger:
 
 def start_scheduler() -> None:
     """Start the background scheduler."""
-    if settings.sync_schedule.strip().lower() == "never":
-        log.info("Scheduler disabled (SYNC_SCHEDULE=never)")
+    if not settings.sync_schedule:
+        log.info("Scheduler disabled (no SYNC_SCHEDULE configured)")
         return
     trigger = _parse_cron_expression(settings.sync_schedule)
     scheduler.add_job(
