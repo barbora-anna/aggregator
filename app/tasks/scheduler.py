@@ -39,6 +39,12 @@ async def sync_all_offers() -> None:
     log.info("Syncing offers for %d products", len(products))
     client = OffersClient.get()
 
+    try:
+        await client.ensure_authenticated()
+    except Exception:
+        log.exception("Authentication failed, skipping sync cycle")
+        return
+
     for product in products:
         try:
             async with db_session() as session:

@@ -47,6 +47,11 @@ class OffersClient:
         self.access_token = data.access_token
         log.info("Authenticated with offers service")
 
+    async def ensure_authenticated(self) -> None:
+        """Authenticate if no valid token is cached."""
+        if not self.access_token:
+            await self._authenticate()
+
     def _auth_headers(self) -> dict[str, str]:
         return {"Bearer": self.access_token}
 
