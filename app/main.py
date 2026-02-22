@@ -11,6 +11,7 @@ from app.db import database
 from app.db.database import get_session, manage_db_engine
 from app.logging_setup import init_logging
 from app.routers import offers, products
+from app.services.offers_client import OffersClient
 from app.tasks.scheduler import start_scheduler, stop_scheduler
 
 init_logging()
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
         start_scheduler()
         yield
         stop_scheduler()
+        await OffersClient.close()
 
 
 app = FastAPI(title="Product Aggregator", lifespan=lifespan)
