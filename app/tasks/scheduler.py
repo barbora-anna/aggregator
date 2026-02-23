@@ -48,7 +48,7 @@ async def sync_all_offers() -> None:
     for product in products:
         try:
             async with db_session() as session:
-                external_offers = await client.get_offers(product.external_id)
+                external_offers = await client.get_offers(product.external_id)  # type: ignore[arg-type]  # filtered by isnot(None)
                 reconciler = OfferReconciler(session, product.id)
                 await reconciler.reconcile(external_offers)
             log.info("Synced offers for product %s", product.id)

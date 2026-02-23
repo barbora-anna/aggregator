@@ -53,6 +53,8 @@ class OffersClient:
             await self._authenticate()
 
     def _auth_headers(self) -> dict[str, str]:
+        if self.access_token is None:
+            raise RuntimeError("Not authenticated")
         return {"Bearer": self.access_token}
 
     async def _request_with_retry(

@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from uuid import UUID as UUIDType, uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -14,10 +14,10 @@ class Base(DeclarativeBase):
 class Product(Base):
     __tablename__ = "product"
 
-    id: Mapped[UUIDType] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    external_id: Mapped[UUIDType | None] = mapped_column(Uuid, index=True)  # ID from offers service
+    external_id: Mapped[UUID | None] = mapped_column(Uuid, index=True)  # ID from offers service
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
@@ -29,8 +29,8 @@ class Product(Base):
 class Offer(Base):
     __tablename__ = "offer"
 
-    id: Mapped[UUIDType] = mapped_column(Uuid, primary_key=True)
-    product_id: Mapped[UUIDType] = mapped_column(Uuid, ForeignKey("product.id"), nullable=False, index=True)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    product_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("product.id"), nullable=False, index=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     items_in_stock: Mapped[int] = mapped_column(Integer, nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
