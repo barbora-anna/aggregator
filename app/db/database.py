@@ -53,6 +53,8 @@ async def manage_db_engine() -> t.AsyncIterator[AsyncEngine]:
 @asynccontextmanager
 async def db_session() -> t.AsyncIterator[AsyncSession]:
     """Acquire ORM session with automatic transaction management."""
+    if session_factory is None:
+        raise RuntimeError("Database not initialized")
     async with session_factory() as session:
         try:
             yield session
